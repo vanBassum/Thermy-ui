@@ -1,4 +1,4 @@
-name: Build and Publish Latest Web Bundle
+name: Build and bundle Thermy UI
 
 on:
   push:
@@ -6,10 +6,10 @@ on:
       - main
 
 permissions:
-  contents: write  # allow creating/updating release
+  contents: write  # required for creating/updating releases
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,43 +24,37 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build gzipped web files
-        run: |
-          npm run buildgz
-          echo "Built files:"
-          ls -lh dist
+      - name: Build project
+        run: npm run build
 
-      - name: Create bundle of gz files
-        run: |
-          cd dist
-          tar -czf ../webbundle.tar.gz ./*.gz
-          cd ..
-          ls -lh webbundle.tar.gz
+      # Optional sanity check
+      - name: List dist contents
+        run: ls -lh dist
 
+      # 🧩 Create an uncompressed TAR bundle
+      - name: Create TAR bundle
+        run: |
+          mkdir -p bundle
+          cp -r dist/* bundle/
+          tar -cf webbundle.tar -C bundle .
+          echo "✅ Created webbundle.tar"
+          ls -lh webbundle.tar
+
+      # 🧩 Generate manifest.json with SHA256 hash
       - name: Generate manifest.json
         run: |
-          HASH=$(sha256sum webbundle.tar.gz | cut -d ' ' -f1)
-          COMMIT=$(git rev-parse --short HEAD)
-          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "{" > manifest.json
-          echo "  \"bundle\": \"webbundle.tar.gz\"," >> manifest.json
-          echo "  \"sha256\": \"$HASH\"," >> manifest.json
-          echo "  \"commit\": \"$COMMIT\"," >> manifest.json
-          echo "  \"date\": \"$DATE\"" >> manifest.json
-          echo "}" >> manifest.json
-          echo "Generated manifest.json:"
+          HASH=$(sha256sum webbundle.tar | cut -d ' ' -f1)
+          echo "{ \"sha256\": \"${HASH}\" }" > manifest.json
           cat manifest.json
 
-      - name: Upload to 'latest' release
+      # 🧩 Upload as "latest" GitHub Release
+      - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Latest Web Bundle
-          body: |
-            Gzipped web assets bundled for ESP device updates.
-            Fetch manifest.json to verify version and integrity.
           files: |
-            webbundle.tar.gz
+            webbundle.tar
             manifest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
