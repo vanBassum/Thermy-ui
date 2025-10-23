@@ -1,0 +1,63 @@
+name: Build and Publish Latest Gzipped Web Files
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write  # required to update/create a release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project with buildgz
+        run: |
+          npm run buildgz
+          ls -lh dist
+
+      - name: Generate manifest.json with SHA256 hashes
+        run: |
+          cd dist
+          echo "[" > manifest.json
+          first=true
+          for f in *; do
+            if [ -f "$f" ]; then
+              hash=$(sha256sum "$f" | cut -d ' ' -f1)
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo "," >> manifest.json
+              fi
+              echo "  {\"file\": \"$f\", \"sha256\": \"$hash\"}" >> manifest.json
+            fi
+          done
+          echo "]" >> manifest.json
+          echo "Generated manifest.json:"
+          cat manifest.json
+
+      - name: Upload build as 'latest' release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Web Build
+          body: |
+            This release contains the latest gzipped frontend files for ESP devices.
+            The manifest.json file lists SHA256 hashes for update checking.
+          files: |
+            dist/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
