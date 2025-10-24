@@ -1,6 +1,9 @@
-import { temperatureApi } from "./temperature";
+import { statsApi } from "./statsApi";
+import { temperatureApi } from "./temperatureApi";
+
 
 
 export const api = {
-  temperatureApi
+  temperatureApi,
+  statsApi,
 };
