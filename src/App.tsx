@@ -12,24 +12,17 @@ function App() {
   const path = location.pathname
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <SidebarProvider
-        style={
-          {
-            "--sidebar-width": "calc(var(--spacing) * 50)",
-            "--header-height": "calc(var(--spacing) * 12)",
-          } as React.CSSProperties
-        }
-        className="h-screen overflow-hidden flex"
-      >
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+      <SidebarProvider className="h-screen flex overflow-hidden">
         <AppSidebar currentPath={path} variant="inset">
           <AppSidebarItem to="/" title="Home" currentPath={path} />
         </AppSidebar>
 
-        <SidebarInset className="flex flex-col flex-1 h-screen overflow-hidden">
+        <SidebarInset className="flex flex-col flex-1 h-screen">
           <AppHeader />
 
-          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-auto">
             <Routes>
               <Route path="/" element={<HomePage />} />
             </Routes>
